@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sorpresa para More</title>
+  <style>
+    :root {
+      --bg: #12081a;
+      --rose: #c41e3a;
+      --gold: #ffe9a8;
+      --ink: #fff6e8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: "Courier New", Courier, monospace;
+      color: var(--ink);
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(ellipse 70% 45% at 50% 100%, #3a1830 0%, transparent 55%),
+        linear-gradient(180deg, #0a0612 0%, #1a0e28 50%, #2a1438 100%);
+    }
+
+    canvas#sky {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.6s ease;
+    }
+
+    canvas#sky.on {
+      opacity: 1;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .screen.hidden {
+      display: none;
+    }
+
+    .msg {
+      max-width: min(92vw, 560px);
+      text-align: center;
+      font-size: clamp(16px, 4.2vw, 28px);
+      line-height: 1.55;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 18px rgba(255, 180, 200, 0.35);
+      min-height: 2.8em;
+      padding: 0 8px;
+    }
+
+    .msg .caret::after {
+      content: "|";
+      animation: blink 0.85s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .btn {
+      margin-top: 28px;
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: clamp(14px, 3.2vw, 18px);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 14px 34px;
+      border-radius: 999px;
+      color: #2a1018;
+      background: linear-gradient(180deg, #ffe7b0, #f0c45a);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 220, 150, 0.35);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    .btn:active { transform: translateY(1px); }
+
+    .choices {
+      position: relative;
+      margin-top: 40px;
+      width: min(92vw, 360px);
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-si, .btn-no {
+      min-width: 108px;
+      padding: 14px 28px;
+      border: 0;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: clamp(16px, 3.5vw, 18px);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+
+    .btn-si {
+      position: relative;
+      z-index: 2;
+      color: #fff;
+      background: linear-gradient(180deg, #e85a7a, #b01e40);
+      box-shadow: 0 10px 24px rgba(176, 30, 64, 0.45);
+    }
+
+    .btn-no {
+      position: fixed;
+      left: 62%;
+      top: 58%;
+      z-index: 40;
+      color: #3a2030;
+      background: linear-gradient(180deg, #f5e6ef, #d8c0cc);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+      transition: left 0.08s ease, top 0.08s ease;
+    }
+
+    .btn-no.hide { display: none; }
+
+    .love-line {
+      max-width: min(92vw, 560px);
+      padding: 0 12px;
+      font-size: clamp(18px, 4.5vw, 32px);
+      color: #ffd0dc;
+      text-align: center;
+      line-height: 1.4;
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .love-line.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .bouquet-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 2vw 6vh;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+    }
+
+    .bouquet-wrap.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bouquet {
+      width: min(96vw, 760px);
+      height: min(78vh, 900px);
+      max-height: calc(100vh - 110px);
+      animation: sway 7s ease-in-out infinite;
+      transform-origin: 50% 95%;
+      filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.45));
+    }
+
+    @keyframes sway {
+      0%, 100% { transform: rotate(-1.2deg); }
+      50% { transform: rotate(1.4deg); }
+    }
+
+    .hint {
+      position: absolute;
+      top: max(12px, env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92vw, 520px);
+      text-align: center;
+      font-size: clamp(12px, 3.2vw, 15px);
+      letter-spacing: 0.08em;
+      color: rgba(255, 230, 200, 0.7);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+      z-index: 6;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    }
+
+    .hint.show { opacity: 1; }
+
+    .final-msg {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      transform: translate(-50%, -50%) scale(0.94);
+      width: min(92vw, 560px);
+      padding: 18px 16px;
+      text-align: center;
+      font-size: clamp(20px, 5.2vw, 34px);
+      line-height: 1.45;
+      color: #ffe6f0;
+      text-shadow: 0 0 22px rgba(255, 140, 180, 0.55), 0 4px 18px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 8;
+      transition: opacity 1s ease, transform 1s ease;
+    }
+
+    .final-msg.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    @media (max-width: 640px) {
+      .screen { padding: 18px 14px; }
+      .choices { margin-top: 28px; height: 80px; }
+      .bouquet {
+        width: 100vw;
+        height: min(72vh, 720px);
+        max-height: calc(100dvh - 120px);
+      }
+      .bouquet-wrap { padding-bottom: 8vh; }
+      .btn-no { left: 58%; top: 62%; }
+      .final-msg { top: 38%; }
+      .moon {
+        top: 5%;
+        right: 6%;
+        width: min(18vw, 72px);
+        height: min(18vw, 72px);
+      }
+    }
+
+    @media (max-height: 700px) {
+      .bouquet { height: min(68vh, 640px); }
+      .hint { font-size: 12px; }
+    }
+
+    .dandy {
+      cursor: pointer;
+    }
+
+    .dandy.blown {
+      cursor: default;
+    }
+
+    .moon {
+      position: absolute;
+      top: 7%;
+      right: 10%;
+      width: min(12vw, 96px);
+      height: min(12vw, 96px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 32%, #fff8e1, #f0d878 55%, #d4b040);
+      box-shadow: 0 0 40px 14px rgba(255, 220, 140, 0.28);
+      opacity: 0;
+      transition: opacity 2s ease;
+      pointer-events: none;
+    }
+
+    .moon.on { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <canvas id="sky"></canvas>
+    <div class="moon" id="moon"></div>
+
+    <section class="screen active" id="screenIntro">
+      <p class="msg" id="introText"></p>
+      <button class="btn" id="btnOpen" hidden>Abrir</button>
+    </section>
+
+    <section class="screen" id="screenAsk">
+      <p class="msg" id="askText"></p>
+      <div class="choices" id="choices">
+        <button class="btn-si" id="btnYes">Si</button>
+      </div>
+      <button class="btn-no" id="btnNo" type="button">No</button>
+    </section>
+
+    <section class="screen" id="screenLove">
+      <p class="love-line" id="loveText">Sabía que dirías que sí, my love</p>
+    </section>
+
+    <div class="bouquet-wrap" id="bouquetWrap">
+      <svg class="bouquet" viewBox="0 0 760 900" xmlns="http://www.w3.org/2000/svg" aria-label="Ramo de sorpresa">
+        <defs>
+          <radialGradient id="roseGrad" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#ff6b7a"/>
+            <stop offset="45%" stop-color="#e02848"/>
+            <stop offset="100%" stop-color="#8b1028"/>
+          </radialGradient>
+          <radialGradient id="roseGrad2" cx="40%" cy="28%" r="70%">
+            <stop offset="0%" stop-color="#ff8a96"/>
+            <stop offset="50%" stop-color="#c41e3a"/>
+            <stop offset="100%" stop-color="#7a0e22"/>
+          </radialGradient>
+          <radialGradient id="leafA" cx="30%" cy="20%" r="80%">
+            <stop offset="0%" stop-color="#8fd36a"/>
+            <stop offset="100%" stop-color="#2f7a32"/>
+          </radialGradient>
+          <radialGradient id="leafB" cx="40%" cy="20%" r="80%">
+            <stop offset="0%" stop-color="#6bb84a"/>
+            <stop offset="100%" stop-color="#1f5a28"/>
+          </radialGradient>
+          <linearGradient id="stem" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4fa03a"/>
+            <stop offset="100%" stop-color="#245c22"/>
+          </linearGradient>
+          <linearGradient id="wrap" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff0d8"/>
+            <stop offset="50%" stop-color="#f2c9a0"/>
+            <stop offset="100%" stop-color="#c9896a"/>
+          </linearGradient>
+          <radialGradient id="dandyCore" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fffef5"/>
+            <stop offset="70%" stop-color="#f5ecd0"/>
+            <stop offset="100%" stop-color="#d8c890"/>
+          </radialGradient>
+          <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="2.5" result="b"/>
+            <feMerge>
+              <feMergeNode in="b"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <g>
+          <path d="M220 650 C150 540, 95 430, 70 300" fill="none" stroke="#2d6b2a" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="86" cy="320" rx="28" ry="12" fill="url(#leafA)" transform="rotate(-50 86 320)"/>
+          <ellipse cx="110" cy="370" rx="32" ry="13" fill="url(#leafB)" transform="rotate(-38 110 370)"/>
+          <ellipse cx="132" cy="425" rx="34" ry="13" fill="url(#leafA)" transform="rotate(-28 132 425)"/>
+          <ellipse cx="155" cy="480" rx="30" ry="12" fill="url(#leafB)" transform="rotate(-20 155 480)"/>
+          <path d="M200 600 C120 500, 55 380, 42 250" fill="none" stroke="#3a8536" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="58" cy="270" rx="22" ry="9" fill="url(#leafB)" transform="rotate(-60 58 270)"/>
+          <ellipse cx="78" cy="320" rx="24" ry="10" fill="url(#leafA)" transform="rotate(-48 78 320)"/>
+        </g>
+
+        <g>
+          <path d="M540 650 C610 540, 670 420, 690 290" fill="none" stroke="#2d6b2a" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="664" cy="310" rx="28" ry="12" fill="url(#leafA)" transform="rotate(52 664 310)"/>
+          <ellipse cx="640" cy="360" rx="32" ry="13" fill="url(#leafB)" transform="rotate(40 640 360)"/>
+          <ellipse cx="618" cy="415" rx="34" ry="13" fill="url(#leafA)" transform="rotate(30 618 415)"/>
+          <ellipse cx="596" cy="470" rx="30" ry="12" fill="url(#leafB)" transform="rotate(22 596 470)"/>
+          <path d="M560 600 C640 490, 700 370, 715 245" fill="none" stroke="#3a8536" stroke-width="3" stroke-linecap="round"/>
+          <ellipse cx="698" cy="265" rx="22" ry="9" fill="url(#leafB)" transform="rotate(62 698 265)"/>
+          <ellipse cx="678" cy="315" rx="24" ry="10" fill="url(#leafA)" transform="rotate(48 678 315)"/>
+        </g>
+
+        <path d="M380 820 C375 700, 372 560, 380 420" fill="none" stroke="url(#stem)" stroke-width="8" stroke-linecap="round"/>
+        <path d="M380 800 C300 660, 240 540, 210 430" fill="none" stroke="#347a30" stroke-width="5.5" stroke-linecap="round"/>
+        <path d="M380 800 C460 660, 520 540, 550 430" fill="none" stroke="#347a30" stroke-width="5.5" stroke-linecap="round"/>
+        <path d="M380 790 C320 680, 280 560, 255 450" fill="none" stroke="#2f6e2c" stroke-width="4" stroke-linecap="round"/>
+        <path d="M380 790 C440 680, 480 560, 505 450" fill="none" stroke="#2f6e2c" stroke-width="4" stroke-linecap="round"/>
+        <path d="M380 780 C300 700, 210 600, 160 500" fill="none" stroke="#3a8536" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M380 780 C460 700, 550 600, 600 500" fill="none" stroke="#3a8536" stroke-width="3.5" stroke-linecap="round"/>
+
+        <ellipse cx="310" cy="650" rx="70" ry="22" fill="url(#leafA)" transform="rotate(-35 310 650)"/>
+        <ellipse cx="450" cy="645" rx="68" ry="21" fill="url(#leafB)" transform="rotate(32 450 645)"/>
+        <ellipse cx="260" cy="560" rx="56" ry="18" fill="url(#leafB)" transform="rotate(-48 260 560)"/>
+        <ellipse cx="500" cy="555" rx="54" ry="18" fill="url(#leafA)" transform="rotate(46 500 555)"/>
+
+        <g transform="translate(250,430)" filter="url(#glow)">
+          <ellipse cx="-10" cy="20" rx="36" ry="38" fill="#8b1028" transform="rotate(-16)"/>
+          <ellipse cx="24" cy="18" rx="34" ry="36" fill="#a01630" transform="rotate(18)"/>
+          <ellipse cx="4" cy="-12" rx="32" ry="34" fill="url(#roseGrad)"/>
+          <ellipse cx="-20" cy="2" rx="26" ry="28" fill="#e02848"/>
+          <ellipse cx="28" cy="0" rx="24" ry="26" fill="#ff4d66"/>
+          <ellipse cx="4" cy="8" rx="18" ry="18" fill="#ff6b7a"/>
+          <circle cx="4" cy="10" r="7" fill="#fff0c8"/>
+          <circle cx="4" cy="10" r="3.5" fill="#f4c430"/>
+        </g>
+
+        <g transform="translate(510,435)" filter="url(#glow)">
+          <ellipse cx="12" cy="18" rx="35" ry="37" fill="#7a0e22" transform="rotate(14)"/>
+          <ellipse cx="-22" cy="16" rx="33" ry="35" fill="#a01630" transform="rotate(-16)"/>
+          <ellipse cx="-2" cy="-14" rx="31" ry="33" fill="url(#roseGrad2)"/>
+          <ellipse cx="22" cy="0" rx="25" ry="27" fill="#e02848"/>
+          <ellipse cx="-24" cy="-2" rx="23" ry="25" fill="#ff4d66"/>
+          <ellipse cx="0" cy="6" rx="17" ry="17" fill="#ff6b7a"/>
+          <circle cx="0" cy="8" r="7" fill="#fff0c8"/>
+          <circle cx="0" cy="8" r="3.5" fill="#f4c430"/>
+        </g>
+
+        <g transform="translate(190,500)">
+          <ellipse cx="-6" cy="12" rx="22" ry="24" fill="#d9a512"/>
+          <ellipse cx="14" cy="10" rx="20" ry="22" fill="#f0c230"/>
+          <ellipse cx="4" cy="-8" rx="18" ry="20" fill="#ffd54a"/>
+          <ellipse cx="-12" cy="0" rx="14" ry="16" fill="#ffe066"/>
+          <circle cx="2" cy="4" r="5" fill="#e6a817"/>
+        </g>
+
+        <g transform="translate(570,505)">
+          <ellipse cx="8" cy="12" rx="22" ry="24" fill="#d9a512"/>
+          <ellipse cx="-12" cy="10" rx="20" ry="22" fill="#f0c230"/>
+          <ellipse cx="0" cy="-8" rx="18" ry="20" fill="#ffd54a"/>
+          <ellipse cx="14" cy="0" rx="14" ry="16" fill="#ffe066"/>
+          <circle cx="0" cy="4" r="5" fill="#e6a817"/>
+        </g>
+
+        <g transform="translate(320,520)">
+          <g id="daisyY">
+            <ellipse cx="0" cy="-18" rx="6" ry="15" fill="#ffe566"/>
+            <ellipse cx="13" cy="-12" rx="6" ry="15" fill="#ffd54a" transform="rotate(45)"/>
+            <ellipse cx="18" cy="0" rx="6" ry="15" fill="#ffe566" transform="rotate(90)"/>
+            <ellipse cx="13" cy="12" rx="6" ry="15" fill="#ffd54a" transform="rotate(135)"/>
+            <ellipse cx="0" cy="18" rx="6" ry="15" fill="#ffe566"/>
+            <ellipse cx="-13" cy="12" rx="6" ry="15" fill="#ffd54a" transform="rotate(-135)"/>
+            <ellipse cx="-18" cy="0" rx="6" ry="15" fill="#ffe566" transform="rotate(-90)"/>
+            <ellipse cx="-13" cy="-12" rx="6" ry="15" fill="#ffd54a" transform="rotate(-45)"/>
+            <circle cx="0" cy="0" r="8" fill="#f4b400"/>
+            <circle cx="0" cy="0" r="4.5" fill="#c98610"/>
+          </g>
+        </g>
+        <use href="#daisyY" transform="translate(440,515) scale(0.9)"/>
+        <use href="#daisyY" transform="translate(300,360) scale(0.7)"/>
+        <use href="#daisyY" transform="translate(460,355) scale(0.68)"/>
+
+        <g fill="#ffe566">
+          <circle cx="230" cy="360" r="6"/><circle cx="242" cy="352" r="4.5"/><circle cx="220" cy="350" r="4"/>
+          <circle cx="530" cy="358" r="6"/><circle cx="518" cy="348" r="4.5"/><circle cx="542" cy="350" r="4"/>
+          <circle cx="350" cy="585" r="5"/><circle cx="410" cy="582" r="5"/>
+        </g>
+
+        <g class="dandy" data-dandy="0" transform="translate(170,340)">
+          <line x1="0" y1="20" x2="0" y2="110" stroke="#3d8a32" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="-12" cy="70" rx="16" ry="7" fill="url(#leafA)" transform="rotate(-40 -12 70)"/>
+          <g class="seed-head">
+            <circle cx="0" cy="0" r="8" fill="#c9a84a"/>
+            <g class="seeds"></g>
+            <circle cx="0" cy="0" r="28" fill="url(#dandyCore)" opacity="0.18"/>
+          </g>
+        </g>
+
+        <g class="dandy" data-dandy="1" transform="translate(300,280)">
+          <line x1="0" y1="20" x2="0" y2="120" stroke="#3d8a32" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="14" cy="75" rx="16" ry="7" fill="url(#leafB)" transform="rotate(35 14 75)"/>
+          <g class="seed-head">
+            <circle cx="0" cy="0" r="8" fill="#c9a84a"/>
+            <g class="seeds"></g>
+            <circle cx="0" cy="0" r="28" fill="url(#dandyCore)" opacity="0.18"/>
+          </g>
+        </g>
+
+        <g class="dandy" data-dandy="2" transform="translate(460,275)">
+          <line x1="0" y1="20" x2="0" y2="120" stroke="#3d8a32" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="-14" cy="78" rx="16" ry="7" fill="url(#leafA)" transform="rotate(-30 -14 78)"/>
+          <g class="seed-head">
+            <circle cx="0" cy="0" r="8" fill="#c9a84a"/>
+            <g class="seeds"></g>
+            <circle cx="0" cy="0" r="28" fill="url(#dandyCore)" opacity="0.18"/>
+          </g>
+        </g>
+
+        <g class="dandy" data-dandy="3" transform="translate(590,335)">
+          <line x1="0" y1="20" x2="0" y2="110" stroke="#3d8a32" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="12" cy="68" rx="16" ry="7" fill="url(#leafB)" transform="rotate(42 12 68)"/>
+          <g class="seed-head">
+            <circle cx="0" cy="0" r="8" fill="#c9a84a"/>
+            <g class="seeds"></g>
+            <circle cx="0" cy="0" r="28" fill="url(#dandyCore)" opacity="0.18"/>
+          </g>
+        </g>
+
+        <path d="M270 680 L380 860 L490 680 L445 755 L380 795 L315 755 Z" fill="url(#wrap)" opacity="0.92"/>
+        <path d="M292 698 L380 825 L468 698 L435 750 L380 780 L325 750 Z" fill="#fff6e8" opacity="0.28"/>
+        <ellipse cx="340" cy="780" rx="32" ry="14" fill="#e85a7a" transform="rotate(-26 340 780)"/>
+        <ellipse cx="420" cy="780" rx="32" ry="14" fill="#e85a7a" transform="rotate(26 420 780)"/>
+        <circle cx="380" cy="786" r="13" fill="#c41e3a"/>
+        <circle cx="380" cy="786" r="6" fill="#ffd0dc"/>
+        <path d="M368 796 Q350 845 330 875" fill="none" stroke="#a01630" stroke-width="6" stroke-linecap="round"/>
+        <path d="M392 796 Q410 845 430 875" fill="none" stroke="#a01630" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <p class="hint" id="hint">Toca cada diente de leon</p>
+    <p class="final-msg" id="finalMsg">Esto lo hice para mi Chica Preciosa Andrea te Amo</p>
+  </div>
+
+  <script>
+    (function () {
+      const introText = document.getElementById("introText");
+      const askText = document.getElementById("askText");
+      const btnOpen = document.getElementById("btnOpen");
+      const screenIntro = document.getElementById("screenIntro");
+      const screenAsk = document.getElementById("screenAsk");
+      const screenLove = document.getElementById("screenLove");
+      const loveText = document.getElementById("loveText");
+      const btnYes = document.getElementById("btnYes");
+      const btnNo = document.getElementById("btnNo");
+      const bouquetWrap = document.getElementById("bouquetWrap");
+      const hint = document.getElementById("hint");
+      const finalMsg = document.getElementById("finalMsg");
+      const canvas = document.getElementById("sky");
+      const ctx = canvas.getContext("2d");
+      const moon = document.getElementById("moon");
+
+      let stars = [];
+      let flying = [];
+      let w = 0;
+      let h = 0;
+      let nightOn = false;
+      let finalShown = false;
+      let noActive = false;
+
+      function wait(ms) {
+        return new Promise(function (r) { setTimeout(r, ms); });
+      }
+
+      function typeText(el, text, speed) {
+        return new Promise(function (resolve) {
+          let i = 0;
+          el.innerHTML = '<span class="caret"></span>';
+          const span = el.querySelector("span");
+          const timer = setInterval(function () {
+            i += 1;
+            span.textContent = text.slice(0, i);
+            if (i >= text.length) {
+              clearInterval(timer);
+              span.classList.remove("caret");
+              resolve();
+            }
+          }, speed);
+        });
+      }
+
+      function showScreen(el) {
+        document.querySelectorAll(".screen").forEach(function (s) {
+          s.classList.remove("active");
+        });
+        el.classList.add("active");
+      }
+
+      function hideScreens() {
+        document.querySelectorAll(".screen").forEach(function (s) {
+          s.classList.remove("active");
+          s.classList.add("hidden");
+        });
+      }
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+
+      function drawSky() {
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < stars.length; i++) {
+          const s = stars[i];
+          s.tw += s.sp;
+          const a = 0.25 + Math.abs(Math.sin(s.tw)) * 0.75;
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,248,220," + a + ")";
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+          if (s.r > 1.2) {
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255,240,180," + (a * 0.5) + ")";
+            ctx.lineWidth = 0.7;
+            ctx.moveTo(s.x - s.r * 3.2, s.y);
+            ctx.lineTo(s.x + s.r * 3.2, s.y);
+            ctx.moveTo(s.x, s.y - s.r * 3.2);
+            ctx.lineTo(s.x, s.y + s.r * 3.2);
+            ctx.stroke();
+          }
+        }
+
+        for (let i = flying.length - 1; i >= 0; i--) {
+          const p = flying[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy -= 0.012;
+          p.vx *= 0.995;
+          p.life -= 1;
+          p.r = Math.max(0.4, p.r * 0.998);
+
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,250,230," + Math.max(0, p.life / p.max) + ")";
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(255,245,210," + Math.max(0, (p.life / p.max) * 0.55) + ")";
+          ctx.lineWidth = 0.6;
+          const arm = p.r * 2.8;
+          ctx.moveTo(p.x - arm, p.y);
+          ctx.lineTo(p.x + arm, p.y);
+          ctx.moveTo(p.x, p.y - arm);
+          ctx.lineTo(p.x, p.y + arm);
+          ctx.stroke();
+
+          if (p.life <= 0 || p.y < -20) {
+            stars.push({
+              x: Math.max(4, Math.min(w - 4, p.x)),
+              y: Math.max(4, Math.min(h * 0.72, p.y < 0 ? Math.random() * h * 0.45 : p.y)),
+              r: Math.random() * 1.5 + 0.5,
+              tw: Math.random() * Math.PI * 2,
+              sp: Math.random() * 0.025 + 0.008
+            });
+            flying.splice(i, 1);
+          }
+        }
+
+        requestAnimationFrame(drawSky);
+      }
+
+      function buildDandelionSeeds() {
+        document.querySelectorAll(".dandy").forEach(function (dandy) {
+          const group = dandy.querySelector(".seeds");
+          group.innerHTML = "";
+          for (let i = 0; i < 28; i++) {
+            const ang = (i / 28) * Math.PI * 2 + (i % 3) * 0.12;
+            const len = 18 + (i % 5) * 3.2;
+            const x2 = Math.cos(ang) * len;
+            const y2 = Math.sin(ang) * len;
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", "0");
+            line.setAttribute("y1", "0");
+            line.setAttribute("x2", String(x2));
+            line.setAttribute("y2", String(y2));
+            line.setAttribute("stroke", "#f7f1dc");
+            line.setAttribute("stroke-width", "1.1");
+            group.appendChild(line);
+
+            const fluff = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            fluff.setAttribute("cx", String(x2));
+            fluff.setAttribute("cy", String(y2));
+            fluff.setAttribute("r", "2.2");
+            fluff.setAttribute("fill", "#fffef8");
+            fluff.setAttribute("opacity", "0.95");
+            group.appendChild(fluff);
+
+            for (let k = 0; k < 5; k++) {
+              const fa = ang + (k - 2) * 0.35;
+              const ray = document.createElementNS("http://www.w3.org/2000/svg", "line");
+              ray.setAttribute("x1", String(x2));
+              ray.setAttribute("y1", String(y2));
+              ray.setAttribute("x2", String(x2 + Math.cos(fa) * 5));
+              ray.setAttribute("y2", String(y2 + Math.sin(fa) * 5));
+              ray.setAttribute("stroke", "rgba(255,255,255,0.85)");
+              ray.setAttribute("stroke-width", "0.7");
+              group.appendChild(ray);
+            }
+          }
+        });
+      }
+
+      function showFinalMessage() {
+        if (finalShown) return;
+        finalShown = true;
+        hint.textContent = "Las semillas ya son estrellas";
+        setTimeout(function () {
+          finalMsg.classList.add("show");
+        }, 700);
+      }
+
+      function blowDandelion(dandy) {
+        if (dandy.classList.contains("blown")) return;
+        dandy.classList.add("blown");
+
+        const seeds = dandy.querySelector(".seeds");
+        const head = dandy.querySelector(".seed-head");
+        const rect = head.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
+
+        if (!nightOn) {
+          nightOn = true;
+          canvas.classList.add("on");
+          moon.classList.add("on");
+        }
+
+        const count = 36;
+        for (let i = 0; i < count; i++) {
+          const ang = -Math.PI * 0.85 + Math.random() * Math.PI * 0.9;
+          const speed = 1.2 + Math.random() * 2.8;
+          flying.push({
+            x: originX + (Math.random() - 0.5) * 18,
+            y: originY + (Math.random() - 0.5) * 18,
+            vx: Math.cos(ang) * speed + (Math.random() - 0.5) * 1.4,
+            vy: Math.sin(ang) * speed - (1.5 + Math.random() * 2.2),
+            r: 1.2 + Math.random() * 1.8,
+            life: 90 + Math.floor(Math.random() * 70),
+            max: 160
+          });
+        }
+
+        seeds.style.transition = "opacity 0.55s ease, transform 0.9s ease";
+        seeds.style.opacity = "0";
+        seeds.style.transform = "scale(1.35)";
+        setTimeout(function () {
+          seeds.innerHTML = "";
+        }, 600);
+
+        const blown = document.querySelectorAll(".dandy.blown").length;
+        const left = 4 - blown;
+        if (left > 0) {
+          hint.textContent = left === 1
+            ? "Queda 1 diente de leon"
+            : "Quedan " + left + " dientes de leon";
+        } else {
+          showFinalMessage();
+        }
+      }
+
+      function placeNoFarFrom(mx, my) {
+        const bw = btnNo.offsetWidth || 110;
+        const bh = btnNo.offsetHeight || 48;
+        const margin = 16;
+        const maxX = Math.max(margin, window.innerWidth - bw - margin);
+        const maxY = Math.max(margin, window.innerHeight - bh - margin);
+        let bestX = margin;
+        let bestY = margin;
+        let bestDist = -1;
+
+        for (let i = 0; i < 18; i++) {
+          const nx = margin + Math.random() * (maxX - margin);
+          const ny = margin + Math.random() * (maxY - margin);
+          const cx = nx + bw / 2;
+          const cy = ny + bh / 2;
+          const dist = Math.hypot(cx - mx, cy - my);
+          if (dist > bestDist) {
+            bestDist = dist;
+            bestX = nx;
+            bestY = ny;
+          }
+        }
+
+        const awayX = mx < window.innerWidth / 2 ? maxX - 10 : margin + 10;
+        const awayY = my < window.innerHeight / 2 ? maxY - 10 : margin + 10;
+        if (Math.hypot(awayX + bw / 2 - mx, awayY + bh / 2 - my) > bestDist) {
+          bestX = awayX;
+          bestY = awayY;
+        }
+
+        btnNo.style.left = bestX + "px";
+        btnNo.style.top = bestY + "px";
+      }
+
+      function fleeNo(e) {
+        if (!noActive) return;
+        const mx = e.clientX;
+        const my = e.clientY;
+        const r = btnNo.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dist = Math.hypot(mx - cx, my - cy);
+        if (dist < 160) {
+          placeNoFarFrom(mx, my);
+        }
+      }
+
+      function onPointerMove(e) {
+        if (!noActive) return;
+        const point = e.touches ? e.touches[0] : e;
+        if (!point) return;
+        fleeNo(point);
+      }
+
+      window.addEventListener("mousemove", onPointerMove);
+      window.addEventListener("touchmove", onPointerMove, { passive: true });
+
+      btnNo.addEventListener("mouseenter", fleeNo);
+      btnNo.addEventListener("mousemove", fleeNo);
+      btnNo.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        placeNoFarFrom(e.clientX, e.clientY);
+      });
+      btnNo.addEventListener("touchstart", function (e) {
+        e.preventDefault();
+        const t = e.touches[0];
+        placeNoFarFrom(t.clientX, t.clientY);
+      }, { passive: false });
+
+      btnOpen.addEventListener("click", async function () {
+        screenIntro.classList.remove("active");
+        await wait(350);
+        showScreen(screenAsk);
+        btnNo.classList.remove("hide");
+        noActive = true;
+        btnNo.style.left = Math.min(window.innerWidth * 0.62, window.innerWidth - 130) + "px";
+        btnNo.style.top = Math.min(window.innerHeight * 0.58, window.innerHeight - 70) + "px";
+        await typeText(askText, "Dime la verdad… ¿de verdad me amas?", 50);
+      });
+
+      btnYes.addEventListener("click", async function () {
+        noActive = false;
+        btnNo.classList.add("hide");
+        screenAsk.classList.remove("active");
+        await wait(300);
+        showScreen(screenLove);
+        loveText.classList.add("show");
+        await wait(2200);
+        hideScreens();
+        bouquetWrap.classList.add("show");
+        hint.classList.add("show");
+      });
+
+      document.querySelectorAll(".dandy").forEach(function (d) {
+        d.addEventListener("click", function () { blowDandelion(d); });
+        d.addEventListener("touchend", function (e) {
+          e.preventDefault();
+          blowDandelion(d);
+        }, { passive: false });
+      });
+
+      window.addEventListener("resize", resize);
+      resize();
+      buildDandelionSeeds();
+      drawSky();
+      btnNo.classList.add("hide");
+
+      (async function start() {
+        await wait(600);
+        await typeText(
+          introText,
+          "Para ti, mi More… una sorpresa hecha con todo mi corazón <3",
+          42
+        );
+        btnOpen.hidden = false;
+        btnOpen.textContent = "Descúbrelo";
+      })();
+    })();
+  </script>
+</body>
+</html>
